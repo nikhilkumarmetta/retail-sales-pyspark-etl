@@ -1,0 +1,4 @@
+customer_id,first_name,last_name,email,state,created_date
+C101,John,Smith,john@example.com,TX,2025-01-10
+C102,Mary,Jones,mary@example.com,CA,2025-03-21
+C103,David,Lee,david@example.com,IL,2025-05-12

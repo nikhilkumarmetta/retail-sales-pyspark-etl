@@ -1,0 +1,6 @@
+product_id,product_name,category,brand,cost_price,list_price
+P100,Wireless Mouse,Electronics,TechPro,12.00,25.50
+P101,Office Chair,Furniture,ComfortCo,65.00,100.00
+P102,Water Bottle,Accessories,Hydrate,6.00,15.00
+P103,Mechanical Keyboard,Electronics,KeyMaster,35.00,60.00
+P104,Desk Lamp,Furniture,BrightLite,18.00,40.00

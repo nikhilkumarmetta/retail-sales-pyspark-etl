@@ -1,245 +1,256 @@
-# Retail Sales PySpark ETL Pipeline
+# AWS Retail Data Engineering Pipeline
 
-## Project Overview
+An end-to-end data engineering project that processes retail sales data using Python, PySpark, Amazon S3, AWS Glue Data Catalog, and Amazon Athena.
 
-This project demonstrates an end-to-end retail sales data engineering pipeline built with Python and PySpark.
+The project demonstrates a complete data pipeline from raw CSV files through data cleaning, validation, transformation, enrichment, Parquet storage, cataloging, and SQL-based business analytics.
 
-The pipeline reads raw CSV data, performs schema conversion and data cleansing, applies data-quality validations, removes duplicate transactions, enriches sales records with customer and product information, calculates sales and profit metrics, creates analytical summaries, and writes curated outputs in Parquet format.
-
-## Architecture
+## Project Architecture
 
 ```text
-Raw CSV Files
-    ↓
-PySpark Ingestion
-    ↓
-Schema Conversion
-    ↓
-Data Cleaning
-    ↓
-Data Quality Validation
-    ↓
-Duplicate Removal
-    ↓
-Valid / Rejected Records
-    ↓
-Customer + Product Joins
-    ↓
-Sales / Cost / Profit Calculations
-    ↓
-Category-Level Aggregation
-    ↓
-Parquet Outputs
+Raw CSV Data
+     |
+     v
+Python / PySpark ETL
+     |
+     +---- Invalid Records ---> Rejected Data
+     |
+     v
+Curated Sales Data
+     |
+     v
+Customer + Product Enrichment
+     |
+     v
+Gold Sales Dataset
+     |
+     v
+Amazon S3 (Parquet)
+     |
+     v
+AWS Glue Data Catalog
+     |
+     v
+Amazon Athena
+     |
+     v
+Business Analytics / SQL
 ```
 
 ## Technologies Used
 
-* Python 3.12
-* PySpark 4.2.0
-* Apache Spark
-* Spark DataFrames
-* Parquet
-* Git
-* GitHub
+- Python
+- PySpark / Apache Spark
+- SQL
+- Amazon S3
+- AWS Glue Data Catalog
+- Amazon Athena
+- Parquet
+- AWS CLI
+- Git / GitHub
+- VS Code
 
-## Source Files
+## Dataset
 
 The project uses three source datasets:
 
-### `sales.csv`
+- `sales.csv` - retail transaction data
+- `customer.csv` - customer information
+- `products.csv` - product and pricing information
 
-Contains transaction-level data such as:
+## ETL Pipeline
 
-* transaction ID
-* customer ID
-* product ID
-* quantity
-* unit price
-* transaction timestamp
-* store ID
+### 1. Data Ingestion
 
-### `customer.csv`
+Retail CSV files are loaded into Spark DataFrames for processing.
 
-Contains customer details such as:
+### 2. Data Cleaning
 
-* customer ID
-* first name
-* last name
-* email
-* state
-* created date
+The pipeline performs transformations including:
 
-### `products.csv`
+- Data type casting
+- Trimming whitespace
+- Standardizing IDs
+- Converting identifiers to uppercase
+- Removing duplicate transactions
+- Handling null and invalid values
 
-Contains product details such as:
+### 3. Data Quality Validation
 
-* product ID
-* product name
-* category
-* brand
-* cost price
-* list price
+Transactions are validated using business rules.
 
-## Data Cleaning
+Examples of rejected conditions include:
 
-The pipeline standardizes identifiers by:
+- Missing customer ID
+- Missing product ID
+- Invalid quantity
+- Invalid unit price
 
-* trimming leading and trailing spaces
-* converting IDs to uppercase
-* converting quantity to integer
-* converting unit price to double
-* converting transaction timestamp to Spark timestamp
-* converting product cost and list prices to numeric data types
+Valid and rejected records are separated so bad data can be investigated without stopping the pipeline.
 
-## Data Quality Rules
+### 4. Curated Layer
 
-The pipeline checks for:
+Valid sales records are written in Parquet format to create a clean analytics-ready dataset.
 
-* missing customer IDs
-* missing product IDs
-* invalid or negative quantities
-* invalid unit prices
-* duplicate transaction IDs
-
-Invalid records are separated into a rejected dataset with a `validation_error` column.
-
-## Business Transformations
-
-### Sales Amount
+A derived sales metric is calculated:
 
 ```text
-sales_amount = quantity × unit_price
+sales_amount = quantity * unit_price
 ```
 
-### Total Cost
+### 5. Gold Layer
+
+The curated sales dataset is enriched with customer and product information.
+
+The Gold dataset contains business-ready fields such as:
+
+- Transaction ID
+- Customer
+- State
+- Product
+- Category
+- Brand
+- Quantity
+- Sales amount
+- Cost
+- Profit
+
+The Gold dataset is stored in Amazon S3 using Parquet format.
+
+### 6. AWS Glue Data Catalog
+
+AWS Glue is used to catalog the Parquet datasets stored in S3.
+
+A clean Athena view named:
 
 ```text
-total_cost = quantity × cost_price
+retail_data_db.gold_sales
 ```
 
-### Profit Amount
+is used as the business analytics layer.
+
+### 7. Amazon Athena Analytics
+
+Athena SQL queries are used to analyze:
+
+- Revenue by product category
+- Revenue by state
+- Product profitability
+- Overall business KPIs
+- Profit margin by category
+
+The SQL queries are available in:
 
 ```text
-profit_amount = sales_amount - total_cost
+sql/athena_queries.sql
 ```
 
-## Data Enrichment
+## Business Results
 
-The pipeline performs left joins between:
+The Gold dataset produced the following sample KPIs:
 
-```text
-valid_sales
-    +
-customers
-    +
-products
-```
+| Metric | Result |
+|---|---:|
+| Total Transactions | 5 |
+| Total Revenue | $356.00 |
+| Total Profit | $114.00 |
+| Average Transaction Value | $71.20 |
 
-to create an enriched `fact_sales` dataset.
+### Category Performance
 
-A left join is used so valid sales records are preserved even when matching customer reference data is unavailable.
+| Category | Revenue | Profit | Profit Margin |
+|---|---:|---:|---:|
+| Furniture | $200.00 | $70.00 | 35.00% |
+| Accessories | $45.00 | $27.00 | 60.00% |
+| Electronics | $111.00 | $17.00 | 15.32% |
 
-## Sample Processing Results
+### Key Insights
 
-The sample pipeline run produced:
-
-```text
-Source records:   8
-Valid records:    5
-Rejected records: 2
-Duplicate removed: 1
-```
-
-Rejected records included:
-
-* missing customer ID
-* invalid negative quantity
-
-## Category Sales Summary
-
-| Category    | Total Sales | Total Profit |
-| ----------- | ----------: | -----------: |
-| Electronics |      111.00 |        17.00 |
-| Furniture   |      200.00 |        70.00 |
-| Accessories |       45.00 |        27.00 |
-
-## Output Datasets
-
-The ETL pipeline generates:
-
-```text
-output/
-├── curated_sales/
-├── rejected_sales/
-├── fact_sales/
-└── sales_summary/
-```
-
-Outputs are written in Snappy-compressed Parquet format.
+- Furniture generated the highest revenue and total profit.
+- Accessories achieved the highest profit margin at 60%.
+- Office Chair was the most profitable product with $70 total profit.
+- Mechanical Keyboard generated revenue but produced a $10 loss.
+- One Gold record contained a missing state, demonstrating a downstream data-quality issue that can be monitored and improved in future pipeline versions.
 
 ## Project Structure
 
 ```text
-retail-sales-pyspark-etl/
+aws-retail-data-project/
+|
 ├── data/
 │   ├── sales.csv
 │   ├── customer.csv
 │   └── products.csv
+|
 ├── scripts/
-│   └── local_sales_etl.py
-├── output/
+│   ├── local_sales_etl.py
+│   └── gold_sales_etl.py
+|
+├── sql/
+│   └── athena_queries.sql
+|
 ├── .gitignore
-├── requirements.txt
-└── README.md
+├── README.md
+└── requirements.txt
 ```
 
-## Run the Project Locally
+## Running the Project Locally
 
-Activate the Python virtual environment:
+Create and activate a Python virtual environment:
 
 ```bash
+python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-Run the ETL pipeline:
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run the local sales ETL:
 
 ```bash
 python scripts/local_sales_etl.py
 ```
 
-## Key PySpark Concepts Used
+Run the Gold-layer ETL:
 
-* `SparkSession`
-* Spark DataFrames
-* `withColumn()`
-* `cast()`
-* `trim()`
-* `upper()`
-* `when()`
-* `filter()`
-* `isNull()`
-* `dropDuplicates()`
-* `join()`
-* `groupBy()`
-* `sum()`
-* Parquet writes
+```bash
+python scripts/gold_sales_etl.py
+```
 
-## Future Enhancements
+## Data Engineering Concepts Demonstrated
 
-The next phase of this project will move the local ETL pipeline to AWS using:
+This project demonstrates practical experience with:
 
-* Amazon S3
-* AWS Glue
-* AWS Glue Data Catalog
-* AWS Glue Crawlers
-* Amazon Athena
-* CloudWatch
-* AWS Glue Job Bookmarks
+- ETL pipeline development
+- PySpark transformations
+- Data quality validation
+- Data cleansing
+- Deduplication
+- Data enrichment and joins
+- Medallion-style curated and Gold layers
+- Columnar Parquet storage
+- Amazon S3 data lakes
+- AWS Glue metadata cataloging
+- Amazon Athena analytics
+- SQL aggregation and business analysis
 
-Additional enhancements may include:
+## Future Improvements
 
-* incremental processing
-* partitioned Parquet output
-* automated pipeline orchestration
-* Amazon Redshift integration
-* dashboarding with Amazon QuickSight
+Future versions could include:
+
+- AWS Glue ETL jobs
+- Automated pipeline orchestration
+- S3 event-driven processing
+- Data partitioning
+- Incremental processing
+- Automated data-quality checks
+- CloudWatch monitoring
+- CI/CD deployment
+- Larger production-scale datasets
+
+## Purpose
+
+This project was built as a hands-on demonstration of an end-to-end AWS data engineering workflow, combining local PySpark development with cloud storage, metadata cataloging, and serverless SQL analytics.

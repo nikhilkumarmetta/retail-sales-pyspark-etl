@@ -3,5 +3,22 @@ __pycache__/
 .DS_Store
 *.pyc
 output/
+# Environment / secrets
+.env
+.env.*
+*.pem
+*.key
 
+# AWS credentials
+.aws/
+credentials
+
+# Spark temporary files
+.sparkStaging/
+metastore_db/
+derby.log
+
+# IDE files
+.vscode/
+.idea/
 
